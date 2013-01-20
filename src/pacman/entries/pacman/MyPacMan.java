@@ -23,15 +23,17 @@ import pacman.game.GameView;
 public class MyPacMan extends Controller<MOVE> {
 
 	private final static int PILLS_MAX_SEPARATION = 10;
-	
+	private final static double ALFA = 1.0;
+
 	private PillClusterManager clusterManager;
+	private int currentLevel;
 
 	public MOVE getMove(Game game, long timeDue) {
 
 		int currentPacmanNodeIndex = game.getPacmanCurrentNodeIndex();
-
-		if (clusterManager == null) {
-			// Init once
+		
+		if (clusterManager == null || game.getCurrentLevel() != currentLevel) {
+			// Init once or when the level changes
 			clusterManager = new PillClusterManager(game);
 		} else if (game.getPillIndex(currentPacmanNodeIndex) != -1
 				|| game.getPowerPillIndex(currentPacmanNodeIndex) != -1) {
@@ -42,14 +44,16 @@ public class MyPacMan extends Controller<MOVE> {
 		List<NodeDistance> closestClusters = clusterManager
 				.findClosestNodeIndexPerCluster(game, currentPacmanNodeIndex);
 
-		double maxSize = 0;
+		double max = 0;
 		NodeDistance biggestClusterNode = null;
 		for (NodeDistance node : closestClusters) {
-			if (maxSize < node.size) {
+			double v = node.size / (ALFA * node.distance);
+			if (max < v) {
+				max = v;
 				biggestClusterNode = node;
 			}
 		}
-		
+
 		// DEBUG draw clusters
 		clusterManager.drawClusters(game);
 
@@ -131,25 +135,25 @@ public class MyPacMan extends Controller<MOVE> {
 					neighbourIndex = game.getNeighbour(neighbourIndex,
 							direction);
 				}
-				if( count == PILLS_MAX_SEPARATION || neighbourIndex == -1 ) {
+				if (count == PILLS_MAX_SEPARATION || neighbourIndex == -1) {
 					neighbours[i++] = -1;
 				} else {
 					nbPillNeighbours++;
 					neighbours[i++] = neighbourIndex;
 				}
 			}
-			
+
 			i = 0;
 			int[] pillNeighbours = new int[nbPillNeighbours];
 			for (int neighbourIndex : neighbours) {
-				if( neighbourIndex != -1 ) {
+				if (neighbourIndex != -1) {
 					pillNeighbours[i++] = neighbourIndex;
 				}
 			}
-			
+
 			// DBEUG draw pill Neighbours
-//			GameView.addPoints(game, Color.CYAN, pillNeighbours);
-			
+			// GameView.addPoints(game, Color.CYAN, pillNeighbours);
+
 			return pillNeighbours;
 		}
 
@@ -176,10 +180,10 @@ public class MyPacMan extends Controller<MOVE> {
 		public void draw(Game game, Color color) {
 			int[] ints = new int[elementsIndicesInCluster.size()];
 			int i = 0;
-			for( int value : elementsIndicesInCluster ) {
+			for (int value : elementsIndicesInCluster) {
 				ints[i++] = value;
 			}
-			GameView.addPoints(game, color, ints );
+			GameView.addPoints(game, color, ints);
 		}
 	}
 
@@ -195,8 +199,9 @@ public class MyPacMan extends Controller<MOVE> {
 
 		public void drawClusters(Game game) {
 			int colorId = 0;
-			for( ConnectedComponents cluster : clusters ) {
-				cluster.draw(game, Color.getHSBColor((float) colorId / clusters.size(), 1, 1));
+			for (ConnectedComponents cluster : clusters) {
+				cluster.draw(game, Color.getHSBColor(
+						(float) colorId / clusters.size(), 1, 1));
 				colorId++;
 			}
 		}
