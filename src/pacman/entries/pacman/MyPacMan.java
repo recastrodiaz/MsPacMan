@@ -23,12 +23,14 @@ import pacman.game.GameView;
 public class MyPacMan extends Controller<MOVE> {
 
 	private final static int PILLS_MAX_SEPARATION = 10;
-	private final static double ALFA = 1.0;
+	private final static double ALFA = 10.0;
 
 	private PillClusterManager clusterManager;
 	private int currentLevel;
 
 	public MOVE getMove(Game game, long timeDue) {
+		
+		double[] moveScores = new double[5];
 
 		int currentPacmanNodeIndex = game.getPacmanCurrentNodeIndex();
 		
@@ -44,22 +46,29 @@ public class MyPacMan extends Controller<MOVE> {
 		List<NodeDistance> closestClusters = clusterManager
 				.findClosestNodeIndexPerCluster(game, currentPacmanNodeIndex);
 
-		double max = 0;
-		NodeDistance biggestClusterNode = null;
 		for (NodeDistance node : closestClusters) {
-			double v = node.size / (ALFA * node.distance);
-			if (max < v) {
-				max = v;
-				biggestClusterNode = node;
+			double score = node.size / (ALFA * node.distance);
+			MOVE move = game.getNextMoveTowardsTarget(currentPacmanNodeIndex,
+					node.index, DM.PATH);
+			moveScores[move.ordinal()] += score;
+		}
+		
+		double max = 0;
+		MOVE biggestClusterNode = null;
+		int i = 0;
+		for (double score : moveScores) {
+			if (max < score) {
+				max = score;
+				biggestClusterNode = MOVE.values()[i];
 			}
+			i++;
 		}
 
 		// DEBUG draw clusters
 		clusterManager.drawClusters(game);
 
 		// return the next direction once the closest target has been identified
-		return game.getNextMoveTowardsTarget(currentPacmanNodeIndex,
-				biggestClusterNode.index, DM.PATH);
+		return biggestClusterNode;
 	}
 
 	private static class NodeDistance {
